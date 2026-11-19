@@ -1,0 +1,610 @@
+const ComponentFunction = function() {
+   @sectionimports @depends[]
+  const React = require('react');
+  const { View, Text, ScrollView, TouchableOpacity, TextInput, Image, StyleSheet, StatusBar, Platform, Alert, LayoutAnimation, useWindowDimensions } = require('react-native');
+  const { Ionicons } = require('@react-native-vector-iconsionicons');
+  const { createBottomTabNavigator } = require('@react-navigationbottom-tabs');
+  const { createStackNavigator } = require('@react-navigationstack');
+  const { useSafeAreaInsets } = require('react-native-safe-area-context');
+  const { useQuery, useMutation, useStorage, seedSampleRows, useLocation } = require('platform-hooks');
+   @endimports
+
+   @sectiontheme @depends[]
+  var TAB_MENU_HEIGHT = Platform.OS === 'web'  56  49;
+  var SCROLL_EXTRA_PADDING = 16;
+  var FAB_SPACING = 16;
+  var primaryColor = '#176244';
+  var accentColor = '#176244';
+  var backgroundColor = '#F2F3EF';
+  var cardColor = '#FFFFFF';
+  var textPrimary = '#1B2923';
+  var textSecondary = '#506057';
+  var surfaceAltColor = '#E3E9E2';
+  var borderColor = '#D5DDD5';
+  var onAccentColor = '#FFFFFF';
+  var scrimColor = 'rgba(15, 29, 21, 0.5)';
+  var radiusSm = 12;
+  var radiusMd = 20;
+  var radiusPill = 999;
+  var visualDesign = 'Minimal alabaster and white surfaces, emerald accents, slate typography, spacious rounded cards and a quiet four-point spacing rhythm.';
+   @endtheme
+
+   @sectionnavigation-setup @depends[]
+  var Tab = createBottomTabNavigator();
+  var Stack = createStackNavigator();
+   @endnavigation-setup
+
+   @sectionThemeContext @depends[theme]
+  var ThemeContext = React.createContext(null);
+  var ThemeProvider = function(props) {
+    var darkMode = false;
+    return React.createElement(ThemeContext.Provider, {
+      value {
+        theme { colors { primary primaryColor, accent accentColor, background backgroundColor, card cardColor, textPrimary textPrimary, textSecondary textSecondary } },
+        darkMode darkMode,
+        toggleDarkMode function() {},
+        visualDesign visualDesign
+      }
+    }, props.children);
+  };
+  var useTheme = function() { return React.useContext(ThemeContext); };
+   @endThemeContext
+
+   @sectionsample-data @depends[]
+  var HABITS = [
+    { title 'Carry a reusable bottle', meta 'Skip one single-use bottle', co2 0.1, coins 6 },
+    { title 'Walk for short errands', meta 'Choose a car-free trip', co2 0.7, coins 6 },
+    { title 'Sort recycling before bin day', meta 'Paper and glass separated', co2 0.2, coins 6 },
+    { title 'Choose a plant-based lunch', meta 'A lentil bowl from home', co2 1.2, coins 6 },
+    { title 'Bring a tote for groceries', meta 'A small swap, ready for later', co2 0.1, coins 6 },
+    { title 'Water the balcony seedlings', meta 'Garden care · 2 min', co2 0, coins 6 },
+    { title 'Pick up litter on my evening route', meta 'Neighborhood care · 10 min', co2 0, coins 6 },
+    { title 'Save food scraps for compost', meta 'Kitchen · 3 min', co2 0.2, coins 6 }
+  ];
+  var MATERIALS = [
+    { id 'plastic', name 'Plastic bottle', hint 'Rinse, then recycle', icon 'water-outline', bin 'Plastic recycling bin', summary 'A quick rinse helps this bottle get recycled.', note 'Check whether your local collection accepts the cap.', steps [['Empty and rinse', 'Remove any remaining liquid.'], ['Replace the cap', 'Follow your local collection guidance.'], ['Recycle loose', 'Do not bag recyclables.']], reuse 'Use it as a seed starter', reuseDetail 'Cut the bottle carefully and fill the base with soil.' },
+    { id 'paper', name 'Cardboard & paper', hint 'Keep dry and flatten boxes', icon 'newspaper-outline', bin 'Paper recycling bin', summary 'Clean, dry paper can become something new.', note 'Greasy or wet paper may need a different destination.', steps [['Keep it dry', 'Wet fibres are harder to recycle.'], ['Flatten boxes', 'Save space in the collection bin.'], ['Remove plastic', 'Take out liners and packing film.']], reuse 'Make a drawer organizer', reuseDetail 'Trim sturdy boxes to fit a small drawer.' },
+    { id 'glass', name 'Glass jar', hint 'Reuse or recycle clean', icon 'wine-outline', bin 'Glass recycling bin', summary 'A quick rinse gives this jar a fresh start in the recycling stream.', note 'Use your local glass container. Keep ceramic and drinking glasses out.', steps [['Empty and rinse', 'A quick rinse clears food residue.'], ['Remove the lid', 'Sort metal lids with your local metal recycling.'], ['Leave the label on', 'Most facilities remove labels during processing.']], reuse 'Make a small herb planter', reuseDetail 'Add pebbles for drainage, a little potting mix, and a basil cutting. Keep the soil lightly moist.' },
+    { id 'food', name 'Food scraps and coffee grounds', hint 'Compost where accepted', icon 'restaurant-outline', bin 'Food waste or compost bin', summary 'Give food scraps another life as compost.', note 'Check which food scraps your local collection accepts.', steps [['Separate packaging', 'Remove all plastic and wrappers.'], ['Collect scraps', 'Use a covered kitchen caddy.'], ['Check collection rules', 'Some programs exclude meat and dairy.']], reuse 'Feed your garden', reuseDetail 'Add suitable scraps to a home compost pile and turn regularly.' }
+  ];
+  var SAMPLE_ROWS = {
+    habit_completions [
+      { habit_title 'Carry a reusable bottle', completed_on '@day(0)', co2_kg 0.1, coins_earned 6 },
+      { habit_title 'Walk for short errands', completed_on '@day(0)', co2_kg 0.7, coins_earned 6 },
+      { habit_title 'Sort recycling before bin day', completed_on '@day(0)', co2_kg 0.2, coins_earned 6 },
+      { habit_title 'Choose a plant-based lunch', completed_on '@day(0)', co2_kg 1.2, coins_earned 6 }
+    ],
+    cleanup_spots [
+      { location_title 'Maple Park', waste_category 'plastic_litter', status 'needs_cleanup', distance_km 0.6, reward_claimed false },
+      { location_title 'Riverside Path', waste_category 'plastic_litter', status 'verified_clean', distance_km 1.3, reward_claimed true },
+      { location_title 'Oak Street bus stop', waste_category 'plastic_litter', status 'needs_cleanup', distance_km 1.8, reward_claimed false },
+      { location_title 'Community garden entrance', waste_category 'overflowing_bin', status 'verified_clean', distance_km 2.1, reward_claimed true },
+      { location_title 'Westfield underpass by the old railway bridge', waste_category 'illegal_dumping', status 'needs_cleanup', distance_km 2.6, reward_claimed false },
+      { location_title 'Cedar Lane playground', waste_category 'plastic_litter', status 'verified_clean', distance_km 3.1, reward_claimed true }
+    ],
+    eco_transactions [
+      { transaction_kind 'habit', coin_delta 6, details 'Carry a reusable bottle' },
+      { transaction_kind 'habit', coin_delta 6, details 'Walk for short errands' },
+      { transaction_kind 'habit', coin_delta 6, details 'Sort recycling before bin day' },
+      { transaction_kind 'habit', coin_delta 6, details 'Choose a plant-based lunch' }
+    ],
+    home_plants [
+      { plant_name 'Basil by the kitchen window', watering_frequency_days 2, last_watered_on '@day(-1)' }
+    ]
+  };
+   @endsample-data
+
+   @sectionshared-helpers @depends[sample-data]
+  var todayKey = function() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  var notify = function(title, message) {
+    Platform.OS === 'web'  window.alert(message)  Alert.alert(title, message);
+  };
+  var Icon = function(props) {
+    return React.createElement(Ionicons, { name props.name, size props.size  24, color props.color  primaryColor, componentId props.componentId });
+  };
+  var Header = function(props) {
+    return React.createElement(View, { style styles.header, componentId props.id + '-header' },
+      props.back  React.createElement(TouchableOpacity, { style styles.iconButton, activeOpacity 0.7, onPress props.back, componentId props.id + '-back' }, React.createElement(Icon, { name props.close  'close'  'chevron-back', color textPrimary }))  null,
+      React.createElement(Text, { style props.large  styles.largeTitle  styles.headerTitle, numberOfLines 1, componentId props.id + '-title' }, props.title),
+      props.action  React.createElement(TouchableOpacity, { style styles.headerAction, activeOpacity 0.7, onPress props.action, componentId props.id + '-action' }, React.createElement(Text, { style styles.actionText }, props.actionLabel))  null
+    );
+  };
+  var PrimaryButton = function(props) {
+    return React.createElement(TouchableOpacity, { style [styles.primaryButton, props.style, props.disabled && { backgroundColor borderColor }], onPress props.onPress, disabled props.disabled, activeOpacity 0.7, componentId props.id },
+      React.createElement(Text, { style styles.primaryButtonText, componentId props.id + '-label' }, props.label));
+  };
+   @endshared-helpers
+
+   @sectionTodayScreen @depends[ThemeContext,styles,sample-data,shared-helpers]
+  var TodayScreen = function(props) {
+    var insets = useSafeAreaInsets();
+    var windowHeight = useWindowDimensions().height;
+    var themeContext = useTheme();
+    var theme = themeContext.theme;
+    var completions = useQuery('habit_completions');
+    var transactions = useQuery('eco_transactions');
+    var insertHabit = useMutation('habit_completions', 'insert');
+    var deleteHabit = useMutation('habit_completions', 'delete');
+    var insertCoin = useMutation('eco_transactions', 'insert');
+    var deleteCoin = useMutation('eco_transactions', 'delete');
+    var date = todayKey();
+    var done = completions.data.filter(function(row) { return row && row.completed_on === date; });
+    var coins = transactions.data.reduce(function(n, row) { return n + (Number(row.coin_delta)  0); }, 0);
+    var saved = done.reduce(function(n, row) { return n + (Number(row.co2_kg)  0); }, 0);
+    var toggle = function(habit) {
+      var existing = done.find(function(row) { return row.habit_title === habit.title; });
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      if (existing) {
+        var matching = transactions.data.find(function(row) { return row.transaction_kind === 'habit' && row.details === habit.title; });
+        deleteHabit.mutate({ id existing.id }).then(function() {
+          if (matching) return deleteCoin.mutate({ id matching.id });
+        }).then(function() { completions.refetch(); transactions.refetch(); }).catch(function(e) { notify('Could not update habit', e.message); });
+      } else {
+        insertHabit.mutate({ habit_title habit.title, completed_on date, co2_kg habit.co2, coins_earned habit.coins }).then(function() {
+          return insertCoin.mutate({ transaction_kind 'habit', coin_delta habit.coins, details habit.title });
+        }).then(function() { completions.refetch(); transactions.refetch(); }).catch(function(e) { notify('Could not save habit', e.message); });
+      }
+    };
+    var habitRow = function(habit, index) {
+      var checked = done.some(function(row) { return row.habit_title === habit.title; });
+      return React.createElement(TouchableOpacity, { key habit.title, style [styles.habitRow, index === HABITS.length - 1 && styles.noBorder], onPress function() { toggle(habit); }, activeOpacity 0.7, componentId 'today-habit-' + index },
+        React.createElement(View, { style [styles.checkbox, checked && styles.checked], componentId 'today-check-' + index }, checked  React.createElement(Icon, { name 'checkmark', size 16, color onAccentColor })  null),
+        React.createElement(View, { style styles.flex, componentId 'today-habit-copy-' + index },
+          React.createElement(Text, { style [styles.rowTitle, checked && styles.doneTitle], numberOfLines 1, componentId 'today-habit-name-' + index }, habit.title),
+          React.createElement(Text, { style styles.meta, componentId 'today-habit-meta-' + index }, habit.meta)));
+    };
+    return React.createElement(View, { style styles.screen, componentId 'today-screen' },
+      React.createElement(StatusBar, { backgroundColor theme.colors.background, barStyle 'dark-content', componentId 'today-status' }),
+      React.createElement(ScrollView, { style { height windowHeight - insets.top - insets.bottom }, contentContainerStyle { paddingTop insets.top + 16, paddingHorizontal 16, paddingBottom TAB_MENU_HEIGHT + insets.bottom + SCROLL_EXTRA_PADDING }, componentId 'today-scroll' },
+        React.createElement(Text, { style styles.overline, componentId 'today-date' }, new Date().toLocaleDateString(undefined, { weekday 'long', month 'long', day 'numeric' })),
+        React.createElement(Text, { style [styles.largeTitle, { marginBottom 24 }], componentId 'today-heading' }, 'Today'),
+        done.length === 0  React.createElement(View, { componentId 'today-empty-summary' },
+          React.createElement(View, { style styles.scoreCard, componentId 'today-score' },
+            React.createElement(Text, { style styles.bigNumber, componentId 'today-score-value' }, '0'),
+            React.createElement(View, { style styles.flex, componentId 'today-score-copy' },
+              React.createElement(Text, { style styles.rowTitle, componentId 'today-score-label' }, 'Your green day starts here'),
+              React.createElement(Text, { style styles.meta, componentId 'today-score-detail' }, 'Check off a habit to grow today’s score.'))),
+          React.createElement(View, { style styles.impactRow, componentId 'today-impact' },
+            React.createElement(View, { style styles.impactTile, componentId 'today-co2' }, React.createElement(Text, { style styles.rowTitle }, '0 kg'), React.createElement(Text, { style styles.meta }, 'CO₂ saved')),
+            React.createElement(View, { style styles.impactTile, componentId 'today-coins' }, React.createElement(Text, { style styles.rowTitle }, String(coins)), React.createElement(Text, { style styles.meta }, 'Garden coins'))),
+          React.createElement(Text, { style [styles.body, { marginBottom 16 }], componentId 'today-invitation' }, 'Start with one small swap. Every check-off adds up.')
+        )  React.createElement(View, { style styles.progressLine, componentId 'today-progress' },
+          React.createElement(Text, { style styles.body, componentId 'today-progress-copy' }, done.length + ' of 7 habits done · ' + saved.toFixed(1) + ' kg CO₂ saved'),
+          React.createElement(View, { style styles.progressTrack, componentId 'today-progress-track' },
+            React.createElement(View, { style [styles.progressFill, { width Math.min(100, done.length  7  100) + '%' }], componentId 'today-progress-fill' }))),
+        React.createElement(View, { style styles.listCard, componentId 'today-habit-list' }, HABITS.slice(0, 7).map(habitRow)),
+        React.createElement(TouchableOpacity, { style styles.gardenCard, onPress function() { props.navigation.navigate('Garden'); }, activeOpacity 0.7, componentId 'today-garden-card' },
+          React.createElement(View, { style styles.gardenTop, componentId 'today-garden-top' },
+            React.createElement(View, { style styles.gardenMark, componentId 'today-garden-icon' }, React.createElement(Icon, { name 'leaf-outline', size 28 })),
+            React.createElement(View, { style styles.flex, componentId 'today-garden-copy' },
+              React.createElement(Text, { style styles.rowTitle }, 'Your garden is growing'),
+              React.createElement(Text, { style styles.meta }, 'Basil · sprouting')),
+            React.createElement(Text, { style styles.coinText }, coins + ' coins')),
+          React.createElement(Text, { style styles.gardenNote }, 'Complete today’s habits to help your next seed take root.')),
+        React.createElement(Text, { style styles.sectionTitle, componentId 'today-more-heading' }, 'One more good habit'),
+        React.createElement(View, { style styles.listCard, componentId 'today-extra-list' }, habitRow(HABITS[7], 7))
+      )
+    );
+  };
+   @endTodayScreen
+
+   @sectionCleanupsScreen @depends[ThemeContext,styles,shared-helpers]
+  var CleanupsScreen = function(props) {
+    var insets = useSafeAreaInsets();
+    var windowHeight = useWindowDimensions().height;
+    var theme = useTheme().theme;
+    var spots = useQuery('cleanup_spots');
+    var rows = spots.data;
+    var spotRow = function(spot, index) {
+      return React.createElement(TouchableOpacity, { key String(spot.id  index), style [styles.spotRow, index === rows.length - 1 && styles.noBorder], onPress function() { props.navigation.navigate('SpotDetail', { spotId spot.id }); }, activeOpacity 0.7, componentId 'cleanups-spot-' + index },
+        React.createElement(View, { style styles.spotMark, componentId 'cleanups-marker-' + index }, React.createElement(Icon, { name 'location-outline' })),
+        React.createElement(View, { style styles.flex, componentId 'cleanups-copy-' + index },
+          React.createElement(Text, { style styles.rowTitle, numberOfLines 1 }, spot.location_title  'Unnamed spot'),
+          React.createElement(Text, { style styles.meta }, (spot.status === 'verified_clean'  'Cleaned'  'Litter reported') + (spot.distance_km == null  ''  ' · ' + (Number(spot.distance_km)  0.621371).toFixed(1) + ' mi'))),
+        React.createElement(Text, { style [styles.meta, spot.status !== 'verified_clean' && styles.greenText] }, spot.status === 'verified_clean'  'Cleaned'  'Needs care'));
+    };
+    return React.createElement(View, { style styles.screen, componentId 'cleanups-screen' },
+      React.createElement(StatusBar, { backgroundColor theme.colors.background, barStyle 'dark-content', componentId 'cleanups-status' }),
+      React.createElement(View, { style { paddingTop insets.top, paddingHorizontal 16 }, componentId 'cleanups-top' },
+        React.createElement(Header, { id 'cleanups', title 'Cleanups', actionLabel 'Report spot', action function() { props.navigation.navigate('ReportSpot'); } })),
+      rows.length === 0  React.createElement(View, { style styles.emptyCenter, componentId 'cleanups-empty' },
+        React.createElement(View, { style styles.emptyMark, componentId 'cleanups-empty-icon' }, React.createElement(Icon, { name 'location-outline', size 28 })),
+        React.createElement(Text, { style styles.sectionTitle, componentId 'cleanups-empty-title' }, 'No spots reported nearby'),
+        React.createElement(Text, { style [styles.body, styles.centerText], componentId 'cleanups-empty-copy' }, 'Mark a place that needs care and help your neighbors find it.'),
+        React.createElement(PrimaryButton, { id 'cleanups-empty-report', label 'Report a spot', style { alignSelf 'stretch', marginTop 24 }, onPress function() { props.navigation.navigate('ReportSpot'); } })
+      )  React.createElement(ScrollView, { style { height windowHeight - insets.top - insets.bottom - 48 }, contentContainerStyle { paddingTop 16, paddingHorizontal 16, paddingBottom TAB_MENU_HEIGHT + insets.bottom + SCROLL_EXTRA_PADDING }, componentId 'cleanups-scroll' },
+        React.createElement(Text, { style [styles.body, { marginBottom 20 }], componentId 'cleanups-intro' }, 'Neighborhood spots near you'),
+        React.createElement(Text, { style [styles.sectionTitle, { marginTop 0 }], componentId 'cleanups-saved-heading' }, 'Saved spots'),
+        React.createElement(View, { style styles.listCard, componentId 'cleanups-saved-list' }, rows.slice(0, 3).map(spotRow)),
+        rows.length  3  React.createElement(View, { componentId 'cleanups-nearby' },
+          React.createElement(Text, { style styles.sectionTitle }, 'Nearby activity'),
+          React.createElement(View, { style styles.listCard, componentId 'cleanups-nearby-list' }, rows.slice(3).map(function(row, index) { return spotRow(row, index + 3); }))
+        )  null
+      )
+    );
+  };
+   @endCleanupsScreen
+
+   @sectionReportSpotScreen @depends[ThemeContext,styles,shared-helpers]
+  var ReportSpotScreen = function(props) {
+    var insets = useSafeAreaInsets();
+    var windowHeight = useWindowDimensions().height;
+    var theme = useTheme().theme;
+    var location = useLocation();
+    var [place, setPlace] = React.useState('');
+    var [category, setCategory] = React.useState('plastic_litter');
+    var [note, setNote] = React.useState('');
+    var [coordinates, setCoordinates] = React.useState(null);
+    var insertSpot = useMutation('cleanup_spots', 'insert');
+    var categories = [
+      ['plastic_litter', 'Litter and loose waste'],
+      ['overflowing_bin', 'Overflowing public bin'],
+      ['illegal_dumping', 'Dumped furniture or bulky items']
+    ];
+    var getLocation = function() {
+      location.getCurrentLocation().then(function(result) {
+        if (result.error) { notify('Location unavailable', result.error); return; }
+        setCoordinates(result);
+        location.reverseGeocode(result.latitude, result.longitude).then(function(addresses) {
+          var nearby = addresses.[0];
+          if (nearby && !nearby.error) setPlace(nearby.address  nearby.city  '');
+        }).catch(function() { notify('Location', 'Enter a nearby landmark to name this spot.'); });
+      }).catch(function(e) { notify('Location unavailable', e.message); });
+    };
+    var submit = function() {
+      if (!place.trim()) { notify('Add a location', 'Enter a nearby landmark or use your current location.'); return; }
+      insertSpot.mutate({ location_title place.trim() + (note.trim()  ' · ' + note.trim()  ''), waste_category category, status 'needs_cleanup', distance_km coordinates  0  null, reward_claimed false }).then(function() {
+        props.navigation.goBack();
+      }).catch(function(e) { notify('Could not report spot', e.message); });
+    };
+    return React.createElement(View, { style [styles.screen, { paddingHorizontal 16, paddingTop insets.top, paddingBottom insets.bottom + 16 }], componentId 'report-screen' },
+      React.createElement(StatusBar, { backgroundColor theme.colors.background, barStyle 'dark-content', componentId 'report-status' }),
+      React.createElement(Header, { id 'report', title 'Report a spot', close true, back function() { props.navigation.goBack(); } }),
+      React.createElement(ScrollView, { style { height windowHeight - insets.top - insets.bottom - 124 }, contentContainerStyle { paddingTop 16, paddingBottom SCROLL_EXTRA_PADDING }, keyboardShouldPersistTaps 'handled', componentId 'report-scroll' },
+        React.createElement(Text, { style [styles.body, { marginBottom 20 }], componentId 'report-intro' }, 'Help neighbors find a place that needs a cleanup.'),
+        React.createElement(Text, { style styles.formLabel, componentId 'report-location-label' }, 'Location'),
+        React.createElement(View, { style styles.locationCard, componentId 'report-location-card' },
+          React.createElement(View, { style styles.gardenMark, componentId 'report-location-mark' }, React.createElement(Icon, { name 'location-outline' })),
+          React.createElement(TextInput, { style [styles.input, styles.flex], value place, onChangeText setPlace, placeholder 'Nearby landmark or street', placeholderTextColor textSecondary, autoCapitalize 'words', autoCorrect true, componentId 'report-place-input' }),
+          React.createElement(TouchableOpacity, { style styles.iconButton, onPress getLocation, activeOpacity 0.7, componentId 'report-use-location' }, React.createElement(Icon, { name 'location-outline' }))),
+        React.createElement(Text, { style [styles.formLabel, { marginTop 24 }], componentId 'report-category-label' }, 'What needs clearing'),
+        React.createElement(View, { style styles.categoryCard, componentId 'report-categories' }, categories.map(function(option, index) {
+          return React.createElement(TouchableOpacity, { key option[0], style [styles.categoryRow, index === categories.length - 1 && styles.noBorder], onPress function() { setCategory(option[0]); }, activeOpacity 0.7, componentId 'report-category-' + index },
+            React.createElement(View, { style [styles.radio, category === option[0] && { borderColor accentColor }], componentId 'report-radio-' + index }, category === option[0]  React.createElement(View, { style styles.radioDot, componentId 'report-radio-dot-' + index })  null),
+            React.createElement(Text, { style styles.rowTitle, numberOfLines 1 }, option[1]));
+        })),
+        React.createElement(Text, { style [styles.formLabel, { marginTop 24 }], componentId 'report-note-label' }, 'Add a note · optional'),
+        React.createElement(TextInput, { style styles.noteInput, value note, onChangeText setNote, placeholder 'Share a helpful detail, like the nearest path or landmark', placeholderTextColor textSecondary, multiline true, numberOfLines 4, textAlignVertical 'top', autoCapitalize 'sentences', componentId 'report-note-input' })
+      ),
+      React.createElement(PrimaryButton, { id 'report-submit', label 'Submit report', onPress submit })
+    );
+  };
+   @endReportSpotScreen
+
+   @sectionSpotDetailScreen @depends[ThemeContext,styles,shared-helpers]
+  var SpotDetailScreen = function(props) {
+    var insets = useSafeAreaInsets();
+    var windowHeight = useWindowDimensions().height;
+    var theme = useTheme().theme;
+    var spots = useQuery('cleanup_spots');
+    var transactions = useQuery('eco_transactions');
+    var updateSpot = useMutation('cleanup_spots', 'update');
+    var deleteSpot = useMutation('cleanup_spots', 'delete');
+    var insertCoin = useMutation('eco_transactions', 'insert');
+    var spotId = props.route.params.spotId;
+    var spot = spots.data.find(function(row) { return row && row.id === spotId; })  {};
+    var cleaned = spot.status === 'verified_clean';
+    var markClean = function() {
+      if (!spot.id  cleaned) return;
+      updateSpot.mutate({ id spot.id, data { status 'verified_clean', reward_claimed true } }).then(function() {
+        return insertCoin.mutate({ transaction_kind 'cleanup', coin_delta 30, details spot.location_title  'Cleanup spot' });
+      }).then(function() { spots.refetch(); transactions.refetch(); notify('Spot cleaned', '30 garden coins earned.'); }).catch(function(e) { notify('Could not update spot', e.message); });
+    };
+    var remove = function() {
+      var action = function() { deleteSpot.mutate({ id spot.id }).then(function() { props.navigation.goBack(); }).catch(function(e) { notify('Could not delete spot', e.message); }); };
+      if (Platform.OS === 'web') { if (window.confirm('Delete this spot')) action(); }
+      else Alert.alert('Delete spot', 'This report will be removed from this device.', [{ text 'Cancel' }, { text 'Delete', style 'destructive', onPress action }]);
+    };
+    return React.createElement(View, { style [styles.screen, { paddingHorizontal 16, paddingTop insets.top, paddingBottom insets.bottom + 16 }], componentId 'spot-detail-screen' },
+      React.createElement(StatusBar, { backgroundColor theme.colors.background, barStyle 'dark-content', componentId 'spot-detail-status' }),
+      React.createElement(Header, { id 'spot-detail', title 'Cleanup spot', back function() { props.navigation.goBack(); }, actionLabel 'Delete', action remove }),
+      React.createElement(ScrollView, { style { height windowHeight - insets.top - insets.bottom - 124 }, contentContainerStyle { paddingTop 16, paddingBottom SCROLL_EXTRA_PADDING }, componentId 'spot-detail-scroll' },
+        React.createElement(Image, { source { uri 'IMAGElitter-pile-in-maple-park' }, style styles.spotPhoto, componentId 'spot-detail-photo' }),
+        React.createElement(Text, { style [styles.largeTitle, { marginTop 20 }], componentId 'spot-detail-title' }, spot.location_title  'Cleanup spot'),
+        React.createElement(Text, { style [styles.body, { marginTop 4, marginBottom 16 }], componentId 'spot-detail-subtitle' }, cleaned  'Cleaned nearby'  'Litter reported nearby'),
+        React.createElement(View, { style styles.locationCard, componentId 'spot-detail-location' },
+          React.createElement(View, { style styles.gardenMark, componentId 'spot-detail-location-icon' }, React.createElement(Icon, { name 'location-outline' })),
+          React.createElement(View, { style styles.flex, componentId 'spot-detail-location-copy' },
+            React.createElement(Text, { style styles.rowTitle, numberOfLines 1 }, spot.location_title  'Nearby location'),
+            React.createElement(Text, { style styles.meta }, 'Saved on this device')),
+          React.createElement(Text, { style styles.meta }, spot.distance_km == null  ''  (Number(spot.distance_km)  0.621371).toFixed(1) + ' mi')),
+        React.createElement(View, { style styles.rewardCard, componentId 'spot-detail-reward' },
+          React.createElement(Text, { style styles.bigNumber }, '+30'),
+          React.createElement(View, { style styles.flex, componentId 'spot-detail-reward-copy' },
+            React.createElement(Text, { style styles.rowTitle }, 'garden coins'),
+            React.createElement(Text, { style styles.meta }, cleaned  'Reward claimed'  'Earned when you mark this spot clean'))),
+        React.createElement(Text, { style styles.sectionTitle, componentId 'spot-detail-about-title' }, 'What to look for'),
+        React.createElement(Text, { style styles.body, componentId 'spot-detail-about' }, spot.waste_category === 'illegal_dumping'  'Bulky items need care. Follow local disposal guidance and avoid handling unsafe materials.'  spot.waste_category === 'overflowing_bin'  'The public bin needs attention. Keep the surrounding path clear and report hazardous waste to local services.'  'Look for loose wrappers and cups nearby. Bring a bag and use appropriate bins for disposal.')
+      ),
+      React.createElement(PrimaryButton, { id 'spot-detail-clean', label cleaned  'Cleaned'  'Mark cleaned', disabled cleaned  !spot.id, onPress markClean })
+    );
+  };
+   @endSpotDetailScreen
+
+   @sectionGardenScreen @depends[ThemeContext,styles,shared-helpers]
+  var GardenScreen = function() {
+    var insets = useSafeAreaInsets();
+    var windowHeight = useWindowDimensions().height;
+    var theme = useTheme().theme;
+    var plants = useQuery('home_plants');
+    var transactions = useQuery('eco_transactions');
+    var insertPlant = useMutation('home_plants', 'insert');
+    var updatePlant = useMutation('home_plants', 'update');
+    var deletePlant = useMutation('home_plants', 'delete');
+    var insertCoin = useMutation('eco_transactions', 'insert');
+    var [garden, setGarden] = useStorage('greenpulse-garden', { plantedOn '', waterings 0 });
+    var plant = plants.data[0]  null;
+    var coins = transactions.data.reduce(function(n, row) { return n + (Number(row.coin_delta)  0); }, 0);
+    var days = garden.plantedOn  Math.max(1, Math.floor((new Date(todayKey()).getTime() - new Date(garden.plantedOn).getTime())  86400000) + 1)  1;
+    var stage = days  7  'Sprouting'  days  21  'Growing'  'Thriving';
+    var chooseSeed = function() {
+      insertPlant.mutate({ plant_name 'Basil by the kitchen window', watering_frequency_days 2, last_watered_on null }).then(function() {
+        return setGarden({ plantedOn todayKey(), waterings 0 });
+      }).then(function() { plants.refetch(); }).catch(function(e) { notify('Could not plant seed', e.message); });
+    };
+    var water = function() {
+      if (!plant) return;
+      if (plant.last_watered_on === todayKey()) { notify('Already watered', 'Your basil has been watered today.'); return; }
+      updatePlant.mutate({ id plant.id, data { last_watered_on todayKey() } }).then(function() {
+        return insertCoin.mutate({ transaction_kind 'water_plant', coin_delta 2, details plant.plant_name });
+      }).then(function() {
+        return setGarden(function(previous) { return { plantedOn previous.plantedOn  todayKey(), waterings (previous.waterings  0) + 1 }; });
+      }).then(function() { plants.refetch(); transactions.refetch(); }).catch(function(e) { notify('Could not record watering', e.message); });
+    };
+    var removePlant = function() {
+      if (!plant) return;
+      var action = function() { deletePlant.mutate({ id plant.id }).then(function() { plants.refetch(); }).catch(function(e) { notify('Could not remove plant', e.message); }); };
+      if (Platform.OS === 'web') { if (window.confirm('Remove this plant')) action(); }
+      else Alert.alert('Remove plant', 'Its care record will be deleted.', [{ text 'Cancel' }, { text 'Remove', style 'destructive', onPress action }]);
+    };
+    return React.createElement(View, { style [styles.screen, { paddingTop insets.top }], componentId 'garden-screen' },
+      React.createElement(StatusBar, { backgroundColor theme.colors.background, barStyle 'dark-content', componentId 'garden-status' }),
+      React.createElement(View, { style { paddingHorizontal 16 }, componentId 'garden-top' }, React.createElement(Header, { id 'garden', title 'Garden', large true, actionLabel plant  'Remove'  '', action plant  removePlant  null })),
+      plant  React.createElement(View, { style styles.flex, componentId 'garden-content' },
+        React.createElement(ScrollView, { style { height windowHeight - insets.top - insets.bottom - 100 }, contentContainerStyle { paddingTop 16, paddingHorizontal 16, paddingBottom TAB_MENU_HEIGHT + insets.bottom + 80 }, componentId 'garden-scroll' },
+          React.createElement(View, { style styles.plantCard, componentId 'garden-plant-card' },
+            React.createElement(View, { style styles.plantMark, componentId 'garden-plant-icon' }, React.createElement(Icon, { name 'leaf-outline', size 40 })),
+            React.createElement(Text, { style styles.sectionTitle, componentId 'garden-plant-name' }, (plant.plant_name  'Basil').split(' by ')[0]),
+            React.createElement(Text, { style styles.meta, componentId 'garden-stage' }, stage + ' · day ' + days)),
+          React.createElement(View, { style styles.balanceCard, componentId 'garden-balance' },
+            React.createElement(Text, { style styles.meta }, 'Garden coins'),
+            React.createElement(Text, { style styles.coinText }, coins + ' coins')),
+          React.createElement(View, { style styles.waterCard, componentId 'garden-water-progress' },
+            React.createElement(View, { style styles.gardenTop, componentId 'garden-water-top' },
+              React.createElement(Text, { style [styles.rowTitle, styles.flex] }, 'Watering progress'),
+              React.createElement(Text, { style styles.meta }, Math.min(garden.waterings  0, 2) + ' of 2 this week')),
+            React.createElement(View, { style [styles.progressTrack, { width '100%', height 8, marginTop 16 }], componentId 'garden-water-track' },
+              React.createElement(View, { style [styles.progressFill, { width Math.min(100, (garden.waterings  0)  50) + '%', height 8 }], componentId 'garden-water-fill' })),
+            React.createElement(Text, { style [styles.body, { marginTop 12 }] }, 'One more watering helps your basil thrive.')),
+          React.createElement(Text, { style styles.sectionTitle }, 'Growing in your garden'),
+          React.createElement(View, { style styles.listCard, componentId 'garden-detail-list' },
+            React.createElement(View, { style styles.gardenDetailRow, componentId 'garden-detail-plant' }, React.createElement(Icon, { name 'leaf-outline' }), React.createElement(View, { style styles.flex }, React.createElement(Text, { style styles.rowTitle, numberOfLines 1 }, plant.plant_name), React.createElement(Text, { style styles.meta }, stage + ' · day ' + days))),
+            React.createElement(View, { style styles.gardenDetailRow, componentId 'garden-detail-water' }, React.createElement(Icon, { name 'water-outline' }), React.createElement(View, { style styles.flex }, React.createElement(Text, { style styles.rowTitle }, 'Next watering'), React.createElement(Text, { style styles.meta }, plant.last_watered_on  'Keep the soil lightly moist'  'Ready for its first watering'))))
+        ),
+        React.createElement(View, { style { paddingHorizontal 16, paddingBottom TAB_MENU_HEIGHT + insets.bottom + 12 }, componentId 'garden-pinned-action' },
+          React.createElement(PrimaryButton, { id 'garden-water', label 'Water basil', onPress water }))
+      )  React.createElement(View, { style [styles.emptyCenter, { paddingBottom TAB_MENU_HEIGHT + insets.bottom }], componentId 'garden-empty' },
+        React.createElement(View, { style styles.emptyMark, componentId 'garden-empty-icon' }, React.createElement(Icon, { name 'leaf-outline', size 32 })),
+        React.createElement(Text, { style styles.sectionTitle }, 'Plant your first seed'),
+        React.createElement(Text, { style [styles.body, styles.centerText] }, 'Grow a garden with coins earned from your cleaner daily habits.'),
+        React.createElement(Text, { style [styles.meta, { marginTop 24 }] }, 'No watering recorded · ' + coins + ' coins earned'),
+        React.createElement(PrimaryButton, { id 'garden-choose-seed', label 'Choose a seed', style { alignSelf 'stretch', marginTop 24 }, onPress chooseSeed })
+      )
+    );
+  };
+   @endGardenScreen
+
+   @sectionLearnScreen @depends[ThemeContext,styles,sample-data,shared-helpers]
+  var LearnScreen = function(props) {
+    var insets = useSafeAreaInsets();
+    var windowHeight = useWindowDimensions().height;
+    var theme = useTheme().theme;
+    var [search, setSearch] = React.useState('');
+    var filtered = MATERIALS.filter(function(item) { return item.name.toLowerCase().includes(search.toLowerCase()); });
+    var open = function(item) { props.navigation.navigate('MaterialGuide', { materialId item.id }); };
+    return React.createElement(View, { style styles.screen, componentId 'learn-screen' },
+      React.createElement(StatusBar, { backgroundColor theme.colors.background, barStyle 'dark-content', componentId 'learn-status' }),
+      React.createElement(View, { style { paddingTop insets.top, paddingHorizontal 16 }, componentId 'learn-top' },
+        React.createElement(Header, { id 'learn', title 'Learn', large true, actionLabel 'Choose material', action function() { open(MATERIALS[0]); } })),
+      React.createElement(ScrollView, { style { height windowHeight - insets.top - insets.bottom - 56 }, contentContainerStyle { paddingTop 16, paddingHorizontal 16, paddingBottom TAB_MENU_HEIGHT + insets.bottom + SCROLL_EXTRA_PADDING }, componentId 'learn-scroll' },
+        React.createElement(View, { style styles.searchBox, componentId 'learn-search-box' },
+          React.createElement(Icon, { name 'search-outline', color textSecondary }),
+          React.createElement(TextInput, { style [styles.input, styles.flex], value search, onChangeText function(value) { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setSearch(value); }, placeholder 'Search a material', placeholderTextColor textSecondary, autoCapitalize 'none', autoCorrect false, componentId 'learn-search' })),
+        React.createElement(Text, { style [styles.overline, { marginTop 24 }], componentId 'learn-quick-label' }, 'Quick guide'),
+        React.createElement(TouchableOpacity, { style styles.scanCard, onPress function() { open(MATERIALS[2]); }, activeOpacity 0.7, componentId 'learn-scan' },
+          React.createElement(View, { style styles.scanTop, componentId 'learn-scan-top' },
+            React.createElement(View, { style styles.scanIcon, componentId 'learn-scan-icon' }, React.createElement(Icon, { name 'scan-outline' })),
+            React.createElement(View, { style styles.flex, componentId 'learn-scan-copy' },
+              React.createElement(Text, { style styles.whiteTitle }, 'Not sure where it goes'),
+              React.createElement(Text, { style styles.scanDescription }, 'Simulate a scan to find sorting and reuse advice.'))),
+          React.createElement(View, { style styles.scanLink, componentId 'learn-scan-link' }, React.createElement(Text, { style styles.whiteTitle }, 'Scan an item'), React.createElement(Icon, { name 'arrow-forward', size 20, color onAccentColor }))),
+        React.createElement(Text, { style [styles.overline, { marginTop 24 }], componentId 'learn-materials-label' }, 'Browse materials'),
+        React.createElement(View, { style styles.listCard, componentId 'learn-material-list' },
+          filtered.length  filtered.map(function(item, index) {
+            return React.createElement(TouchableOpacity, { key item.id, style [styles.materialRow, index === filtered.length - 1 && styles.noBorder], onPress function() { open(item); }, activeOpacity 0.7, componentId 'learn-material-' + index },
+              React.createElement(View, { style styles.spotMark, componentId 'learn-material-icon-' + index }, React.createElement(Icon, { name item.icon })),
+              React.createElement(View, { style styles.flex, componentId 'learn-material-copy-' + index }, React.createElement(Text, { style styles.rowTitle, numberOfLines 1 }, item.name), React.createElement(Text, { style styles.meta }, item.hint)),
+              React.createElement(Icon, { name 'chevron-forward', color textSecondary }));
+          })  React.createElement(Text, { style [styles.body, { paddingVertical 20 }], componentId 'learn-no-results' }, 'No materials found. Try another search.')),
+        React.createElement(View, { style styles.tipCard, componentId 'learn-tip' },
+          React.createElement(Text, { style styles.rowTitle }, 'Small tip'),
+          React.createElement(Text, { style [styles.body, { marginTop 8 }] }, 'When in doubt, check your local collection rules before putting an item in the recycling bin.'))
+      )
+    );
+  };
+   @endLearnScreen
+
+   @sectionMaterialGuideScreen @depends[ThemeContext,styles,sample-data,shared-helpers]
+  var MaterialGuideScreen = function(props) {
+    var insets = useSafeAreaInsets();
+    var windowHeight = useWindowDimensions().height;
+    var theme = useTheme().theme;
+    var id = props.route.params.materialId;
+    var item = MATERIALS.find(function(row) { return row.id === id; })  MATERIALS[2];
+    return React.createElement(View, { style [styles.screen, { paddingTop insets.top, paddingHorizontal 16 }], componentId 'guide-screen' },
+      React.createElement(StatusBar, { backgroundColor theme.colors.background, barStyle 'dark-content', componentId 'guide-status' }),
+      React.createElement(Header, { id 'guide', title 'Recycling guide', back function() { props.navigation.goBack(); } }),
+      React.createElement(ScrollView, { style { height windowHeight - insets.top - insets.bottom - 56 }, contentContainerStyle { paddingTop 16, paddingBottom insets.bottom + SCROLL_EXTRA_PADDING }, componentId 'guide-scroll' },
+        React.createElement(View, { style styles.guideIntro, componentId 'guide-intro' },
+          React.createElement(View, { style styles.scanIcon, componentId 'guide-intro-icon' }, React.createElement(Icon, { name item.icon, size 28 })),
+          React.createElement(Text, { style [styles.overline, { color onAccentColor, marginTop 20 }], componentId 'guide-kicker' }, 'Material guide'),
+          React.createElement(Text, { style [styles.largeTitle, { color onAccentColor }], componentId 'guide-name' }, item.name),
+          React.createElement(Text, { style [styles.body, { color onAccentColor, marginTop 8 }], componentId 'guide-summary' }, item.summary)),
+        React.createElement(View, { style styles.destinationCard, componentId 'guide-destination' },
+          React.createElement(Text, { style styles.overline }, 'Where it goes'),
+          React.createElement(Text, { style [styles.sectionTitle, { marginTop 8, marginBottom 0 }] }, item.bin),
+          React.createElement(Text, { style [styles.meta, { marginTop 8 }] }, item.note)),
+        React.createElement(Text, { style styles.sectionTitle, componentId 'guide-steps-title' }, 'Before you recycle'),
+        React.createElement(View, { style styles.listCard, componentId 'guide-steps' }, item.steps.map(function(step, index) {
+          return React.createElement(View, { key String(index), style [styles.guideStep, index === item.steps.length - 1 && styles.noBorder], componentId 'guide-step-' + index },
+            React.createElement(View, { style styles.stepNumber, componentId 'guide-step-number-' + index }, React.createElement(Text, { style styles.greenText }, String(index + 1))),
+            React.createElement(View, { style styles.flex, componentId 'guide-step-copy-' + index }, React.createElement(Text, { style styles.rowTitle }, step[0]), React.createElement(Text, { style styles.meta }, step[1])));
+        })),
+        React.createElement(View, { style styles.destinationCard, componentId 'guide-reuse' },
+          React.createElement(Text, { style [styles.overline, { color primaryColor }] }, 'Give it another life'),
+          React.createElement(Text, { style [styles.rowTitle, { marginTop 8 }] }, item.reuse),
+          React.createElement(Text, { style [styles.body, { marginTop 8 }] }, item.reuseDetail)),
+        React.createElement(Text, { style styles.sectionTitle }, 'A useful reminder'),
+        React.createElement(View, { style styles.listCard, componentId 'guide-reminder' },
+          React.createElement(View, { style styles.guideStep, componentId 'guide-reminder-row' },
+            React.createElement(View, { style styles.stepNumber, componentId 'guide-reminder-icon' }, React.createElement(Icon, { name 'arrow-forward', size 18 })),
+            React.createElement(View, { style styles.flex, componentId 'guide-reminder-copy' }, React.createElement(Text, { style styles.rowTitle }, 'Check your local collection rules'), React.createElement(Text, { style styles.meta }, 'Accepted materials can vary by neighborhood.'))))
+      )
+    );
+  };
+   @endMaterialGuideScreen
+
+   @sectionstyles @depends[theme]
+  const styles = StyleSheet.create({
+    screen { flex 1, backgroundColor backgroundColor },
+    flex { flex 1, minWidth 0 },
+    header { height 56, flexDirection 'row', alignItems 'center', gap 8 },
+    headerTitle { flex 1, color textPrimary, fontSize 22, lineHeight 27, fontWeight '600' },
+    largeTitle { flex 1, color textPrimary, fontSize 32, lineHeight 39, fontWeight '700', letterSpacing -0.6 },
+    iconButton { minHeight 48, minWidth 48, alignItems 'center', justifyContent 'center' },
+    headerAction { minHeight 48, minWidth 48, alignItems 'center', justifyContent 'center', paddingHorizontal 8 },
+    actionText { color primaryColor, fontSize 15, lineHeight 20, fontWeight '600' },
+    overline { color textSecondary, fontSize 11, lineHeight 14, fontWeight '600', letterSpacing 0.8, textTransform 'uppercase', marginBottom 8 },
+    body { color textSecondary, fontSize 15, lineHeight 20 },
+    meta { color textSecondary, fontSize 14, lineHeight 18, marginTop 4 },
+    rowTitle { color textPrimary, fontSize 16, lineHeight 20, fontWeight '600' },
+    sectionTitle { color textPrimary, fontSize 22, lineHeight 27, fontWeight '600', marginTop 24, marginBottom 12 },
+    listCard { backgroundColor cardColor, borderRadius radiusMd, paddingHorizontal 16 },
+    habitRow { minHeight 68, flexDirection 'row', alignItems 'center', gap 12, borderBottomWidth 1, borderBottomColor borderColor },
+    noBorder { borderBottomWidth 0 },
+    checkbox { width 24, height 24, borderWidth 2, borderColor borderColor, borderRadius 8, alignItems 'center', justifyContent 'center' },
+    checked { borderColor accentColor, backgroundColor accentColor },
+    doneTitle { color textSecondary, textDecorationLine 'line-through' },
+    progressLine { flexDirection 'row', alignItems 'center', gap 12, marginBottom 16 },
+    progressTrack { width 88, height 6, borderRadius radiusPill, backgroundColor surfaceAltColor, overflow 'hidden' },
+    progressFill { height 6, borderRadius radiusPill, backgroundColor accentColor },
+    gardenCard { backgroundColor cardColor, borderRadius radiusMd, padding 20, marginTop 24 },
+    gardenTop { flexDirection 'row', alignItems 'center', gap 12 },
+    gardenMark { width 48, height 48, borderRadius radiusSm, backgroundColor surfaceAltColor, alignItems 'center', justifyContent 'center' },
+    coinText { color primaryColor, fontSize 16, lineHeight 20, fontWeight '700' },
+    gardenNote { color textSecondary, fontSize 15, lineHeight 20, marginTop 16, paddingTop 16, borderTopWidth 1, borderTopColor borderColor },
+    scoreCard { backgroundColor cardColor, borderRadius radiusMd, paddingHorizontal 20, paddingVertical 16, flexDirection 'row', alignItems 'center', gap 16, marginBottom 16 },
+    bigNumber { color primaryColor, fontSize 44, lineHeight 53, fontWeight '700' },
+    impactRow { flexDirection 'row', gap 8, marginBottom 24 },
+    impactTile { flex 1, padding 12, backgroundColor surfaceAltColor, borderRadius radiusSm },
+    spotRow { minHeight 92, flexDirection 'row', alignItems 'center', gap 12, borderBottomWidth 1, borderBottomColor borderColor },
+    spotMark { width 40, height 40, borderRadius radiusPill, backgroundColor surfaceAltColor, alignItems 'center', justifyContent 'center' },
+    greenText { color primaryColor, fontSize 14, lineHeight 18, fontWeight '600' },
+    emptyCenter { flex 1, alignItems 'center', justifyContent 'center', paddingHorizontal 32 },
+    emptyMark { width 64, height 64, borderRadius radiusMd, backgroundColor surfaceAltColor, alignItems 'center', justifyContent 'center' },
+    centerText { textAlign 'center' },
+    primaryButton { minHeight 52, borderRadius radiusMd, backgroundColor accentColor, alignItems 'center', justifyContent 'center', paddingHorizontal 20 },
+    primaryButtonText { color onAccentColor, fontSize 16, lineHeight 20, fontWeight '600' },
+    formLabel { color textSecondary, fontSize 14, lineHeight 18, fontWeight '500', marginBottom 8 },
+    locationCard { minHeight 80, flexDirection 'row', alignItems 'center', gap 12, backgroundColor cardColor, borderRadius radiusMd, padding 12 },
+    input { color textPrimary, fontSize 16, lineHeight 20, minHeight 48, padding 0 },
+    categoryCard { backgroundColor cardColor, borderRadius radiusMd, paddingHorizontal 12 },
+    categoryRow { minHeight 56, flexDirection 'row', alignItems 'center', gap 12, borderBottomWidth 1, borderBottomColor borderColor },
+    radio { width 22, height 22, borderRadius radiusPill, borderWidth 2, borderColor borderColor, alignItems 'center', justifyContent 'center' },
+    radioDot { width 10, height 10, borderRadius radiusPill, backgroundColor accentColor },
+    noteInput { minHeight 88, padding 16, backgroundColor cardColor, borderColor borderColor, borderWidth 1, borderRadius radiusSm, color textPrimary, fontSize 15, lineHeight 20 },
+    spotPhoto { width '100%', height 248, borderRadius radiusMd, backgroundColor surfaceAltColor },
+    rewardCard { backgroundColor cardColor, borderRadius radiusMd, padding 20, marginTop 16, flexDirection 'row', alignItems 'center', gap 16 },
+    plantCard { height 244, borderRadius radiusMd, backgroundColor cardColor, alignItems 'center', justifyContent 'center', padding 20 },
+    plantMark { width 72, height 72, borderRadius radiusPill, backgroundColor surfaceAltColor, alignItems 'center', justifyContent 'center' },
+    balanceCard { marginTop 16, paddingHorizontal 20, paddingVertical 16, borderRadius radiusMd, backgroundColor cardColor, flexDirection 'row', justifyContent 'space-between', alignItems 'center' },
+    waterCard { marginTop 16, padding 20, borderRadius radiusMd, backgroundColor cardColor },
+    gardenDetailRow { minHeight 64, flexDirection 'row', alignItems 'center', gap 12, borderBottomWidth 1, borderBottomColor borderColor },
+    searchBox { height 52, flexDirection 'row', alignItems 'center', gap 12, paddingHorizontal 16, backgroundColor cardColor, borderColor borderColor, borderWidth 1, borderRadius radiusSm },
+    scanCard { minHeight 156, justifyContent 'space-between', padding 16, backgroundColor primaryColor, borderRadius radiusMd },
+    scanTop { flexDirection 'row', alignItems 'flex-start', gap 12 },
+    scanIcon { width 48, height 48, borderRadius radiusSm, backgroundColor cardColor, alignItems 'center', justifyContent 'center' },
+    whiteTitle { color onAccentColor, fontSize 16, lineHeight 20, fontWeight '600' },
+    scanDescription { color surfaceAltColor, fontSize 14, lineHeight 18, marginTop 4 },
+    scanLink { minHeight 48, flexDirection 'row', alignItems 'center', gap 8 },
+    materialRow { minHeight 68, flexDirection 'row', alignItems 'center', gap 12, borderBottomWidth 1, borderBottomColor borderColor },
+    tipCard { marginTop 24, padding 16, backgroundColor surfaceAltColor, borderRadius radiusMd },
+    guideIntro { padding 24, backgroundColor primaryColor, borderRadius radiusMd },
+    destinationCard { marginTop 20, padding 20, backgroundColor cardColor, borderRadius radiusMd },
+    guideStep { minHeight 68, flexDirection 'row', alignItems 'center', gap 12, borderBottomWidth 1, borderBottomColor borderColor },
+    stepNumber { width 32, height 32, borderRadius radiusPill, backgroundColor surfaceAltColor, alignItems 'center', justifyContent 'center' }
+  });
+   @endstyles
+
+   @sectionTabNavigator @depends[TodayScreen,CleanupsScreen,LearnScreen,GardenScreen,navigation-setup]
+  var TabNavigator = function() {
+    var insets = useSafeAreaInsets();
+    return React.createElement(View, { style { flex 1, width '100%', height '100%', overflow 'hidden' }, componentId 'tab-shell' },
+      React.createElement(Tab.Navigator, {
+        screenOptions function(info) {
+          var names = { Today 'home', Cleanups 'location', Learn 'book', Garden 'leaf' };
+          return {
+            headerShown false,
+            hikariLiquidGlass true,
+            tabBarStyle { position 'absolute', bottom 0, height Platform.OS === 'web'  TAB_MENU_HEIGHT  TAB_MENU_HEIGHT + insets.bottom, paddingBottom 0, borderTopWidth 0, backgroundColor cardColor },
+            tabBarItemStyle { padding 0 },
+            tabBarActiveTintColor primaryColor,
+            tabBarInactiveTintColor textSecondary,
+            tabBarLabelStyle { fontSize 11, lineHeight 14, fontWeight '600' },
+            tabBarIcon function(options) { return React.createElement(Ionicons, { name options.focused  names[info.route.name]  names[info.route.name] + '-outline', size 24, color options.color }); }
+          };
+        }
+      },
+        React.createElement(Tab.Screen, { name 'Today', component TodayScreen }),
+        React.createElement(Tab.Screen, { name 'Cleanups', component CleanupsScreen }),
+        React.createElement(Tab.Screen, { name 'Learn', component LearnScreen }),
+        React.createElement(Tab.Screen, { name 'Garden', component GardenScreen })
+      )
+    );
+  };
+   @endTabNavigator
+
+   @sectionMainNavigator @depends[TabNavigator,ReportSpotScreen,SpotDetailScreen,MaterialGuideScreen,navigation-setup]
+  var MainNavigator = function() {
+    return React.createElement(Stack.Navigator, { initialRouteName 'Main', screenOptions { headerShown false } },
+      React.createElement(Stack.Screen, { name 'Main', component TabNavigator }),
+      React.createElement(Stack.Screen, { name 'ReportSpot', component ReportSpotScreen }),
+      React.createElement(Stack.Screen, { name 'SpotDetail', component SpotDetailScreen, initialParams { spotId null } }),
+      React.createElement(Stack.Screen, { name 'MaterialGuide', component MaterialGuideScreen, initialParams { materialId 'glass' } })
+    );
+  };
+   @endMainNavigator
+
+   @sectionreturn @depends[ThemeProvider,MainNavigator,sample-data]
+  if (seedSampleRows) seedSampleRows(SAMPLE_ROWS);
+  return React.createElement(ThemeProvider, null,
+    React.createElement(View, { style { flex 1, width '100%', height '100%' }, componentId 'app-root' },
+      React.createElement(MainNavigator)
+    )
+  );
+   @endreturn
+};
+return ComponentFunction;
